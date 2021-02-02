@@ -1,38 +1,77 @@
 const express = require('express')
-const router = express.Router();
+const router = express.Router()
 
 const Message = require('../models/message')
 const User = require('../models/user')
 
 /** Route to get all messages. */
 router.get('/', (req, res) => {
-    return res.send(`All Messages route`)
+  Message.find()
+    .then((messages) => {
+      return res.json({ messages })
+    })
+    .catch((err) => {
+      throw err.message
+    })
 })
 
 /** Route to get one message by id. */
 router.get('/:messageId', (req, res) => {
-    return res.send(`Message with id ${req.params.messageId}`)
+  console.log(`Message id: ${req.params.messageId}`)
+  Message.findById(req.params.messageId)
+    .then((message) => {
+      return res.json({ message })
+    })
+    .catch((err) => {
+      throw err.message
+    })
 })
 
 /** Route to add a new message. */
 router.post('/', (req, res) => {
-    return res.send({
-        message: 'Create new message',
-        data: req.body
+  let message = new Message(req.body)
+  message
+    .save()
+    .then((message) => {
+      console.log(message)
+      return User.findById(message.author)
+    })
+    .then((user) => {
+      console.log(user)
+      user.messages.unshift(message)
+      return user.save()
+    })
+    .then((_) => {
+      return res.send(message)
+    })
+    .catch((err) => {
+      throw err.message
     })
 })
 
 /** Route to update an existing message. */
 router.put('/:messageId', (req, res) => {
-    return res.send({
-        message: `Update message with id ${req.params.messageId}`,
-        data: req.body
+  Message.findByIdAndUpdate(req.params.messageId, req.body)
+    .then((message) => {
+      return res.json({ message })
+    })
+    .catch((err) => {
+      throw err.message
     })
 })
 
 /** Route to delete a message. */
 router.delete('/:messageId', (req, res) => {
-    return res.send(`Delete message with id ${req.params.messageId}`)
+  Message.findByIdAndDelete(req.params.messageId)
+    .then(() => {
+      return res.json({
+        message: 'Successfully deleted.',
+        _id: req.params.messageId,
+      })
+    })
+    .catch((err) => {
+      throw err.message
+    })
 })
 
 module.exports = router
